@@ -53,7 +53,7 @@ func (tag *Tag) BeforeUpdate(scope *gorm.Scope) error {
 	return nil
 }
 
-func ExistsTagByID(id int) bool {
+func ExistTagByID(id int) bool {
 	var tag Tag
 	db.Select("id").Where("id = ?", id).First(&tag)
 	if tag.ID > 0 {
