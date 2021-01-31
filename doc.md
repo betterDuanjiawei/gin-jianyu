@@ -1,5 +1,82 @@
 # gin-jianyu记录
 ## 外部包和知识
+
+### cron
+*  go get -u github.com/robfig/cron
+* 介绍
+```
+Cron 表达式格式
+字段名
+是否必填
+允许的值
+允许的特殊字符
+秒（Seconds）
+Yes
+0-59
+* / , -
+分（Minutes）
+Yes
+0-59
+* / , -
+时（Hours）
+Yes
+0-23
+* / , -
+一个月中的某天（Day of month）
+Yes
+1-31
+* / , - ?
+月（Month）
+Yes
+1-12 or JAN-DEC
+* / , -
+星期几（Day of week）
+Yes
+0-6 or SUN-SAT
+* / , - ?
+Cron表达式表示一组时间，使用 6 个空格分隔的字段
+可以留意到 Golang 的 Cron 比 Crontab 多了一个秒级，以后遇到秒级要求的时候就省事了
+Cron 特殊字符
+1、星号 ( * )
+星号表示将匹配字段的所有值
+2、斜线 ( / )
+斜线用户 描述范围的增量，表现为 “N-MAX/x”，first-last/x 的形式，例如 3-59/15 表示此时的第三分钟和此后的每 15 分钟，到59分钟为止。即从 N 开始，使用增量直到该特定范围结束。它不会重复
+3、逗号 ( , )
+逗号用于分隔列表中的项目。例如，在 Day of week 使用“MON，WED，FRI”将意味着星期一，星期三和星期五
+4、连字符 ( - )
+连字符用于定义范围。例如，9 - 17 表示从上午 9 点到下午 5 点的每个小时
+5、问号 ( ? )
+不指定值，用于代替 “ * ”，类似 “ _ ” 的存在，不难理解
+预定义的 Cron 时间表
+输入
+简述
+相当于
+@yearly (or @annually)
+1月1日午夜运行一次
+0 0 0 1 1 *
+@monthly
+每个月的午夜，每个月的第一个月运行一次
+0 0 0 1  
+@weekly
+每周一次，周日午夜运行一次
+0 0 0   0
+@daily (or @midnight)
+每天午夜运行一次
+0 0 0   *
+@hourly
+每小时运行一次
+0 0    
+```
+* 使用场景
+```
+软删除，同时也引入了另外一个问题
+就是我怎么硬删除，我什么时候硬删除？这个往往与业务场景有关系，大致为
+另外有一套硬删除接口
+定时任务清理（或转移、backup）无效数据
+在这里我们选用第二种解决方案来进行实践
+```
+
+
 ### gorm
 * go get -u github.com/jinzhu/gorm
 * go get -u github.com/go-sql-driver/mysql
@@ -95,6 +172,7 @@ gorm的Join
 循环Related
 综合之下，还是Preload更好
 ```
+* 注意硬删除要使用 Unscoped()，这是 GORM 的约定 `db.Unscoped().Where("deleted_on != ?", 0).Delete(&Article{})`
 ## go 热更新
 [从PHP迁移至Golang - 热更新篇](https://segmentfault.com/a/1190000017228287)
 ### endless

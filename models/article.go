@@ -75,3 +75,8 @@ func (article *Article) BeforeUpdate(scope *gorm.Scope) error {
 	scope.SetColumn("ModifiedOn", time.Now().Unix())
 	return nil
 }
+
+func CleanAllArticle() bool {
+	db.Unscoped().Where("deleted_on != ?", 0).Delete(&Article{})
+	return true
+}

@@ -71,3 +71,8 @@ func DeleteTag(id int) bool {
 	db.Where("id = ?", id).Delete(&Tag{})
 	return true
 }
+
+func CleanAllTag() bool {
+	db.Unscoped().Where("deleted_on != ?", 0).Delete(&Tag{})
+	return true
+}
