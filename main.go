@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func main() {
 		WriteTimeout:   setting.WriteTimeout,
 		MaxHeaderBytes: 1 << 20,
 	}
-
+	log.Println("pid is: ", syscall.Getpid())
 	go func() {
 		if err := s.ListenAndServe(); err != nil {
 			log.Printf("listen failed, err:%v", err)

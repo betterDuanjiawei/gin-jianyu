@@ -1,4 +1,96 @@
 # gin-jianyu记录
+## 外部包和知识
+
+## go 热更新
+[从PHP迁移至Golang - 热更新篇](https://segmentfault.com/a/1190000017228287)
+### endless
+* 安装  go get -u github.com/fvbock/endless
+* Zero downtime restarts for golang HTTP and HTTPS servers. (for golang 1.3+)
+```
+我们借助 fvbock/endless 来实现 Golang HTTP/HTTPS 服务重新启动的零停机
+endless server 监听以下几种信号量：
+syscall.SIGHUP：触发 fork 子进程和重新启动
+syscall.SIGUSR1/syscall.SIGTSTP：被监听，但不会触发任何动作
+syscall.SIGUSR2：触发 hammerTime
+syscall.SIGINT/syscall.SIGTERM：触发服务器关闭（会完成正在运行的请求）
+endless 正正是依靠监听这些信号量，完成管控的一系列动作
+```
+* 你想想，每次更新发布、或者修改配置文件等，只需要给该进程发送SIGTERM信号，而不需要强制结束应用，是多么便捷又安全的事！
+  问题
+* endless 热更新是采取创建子进程后，将原进程退出的方式，这点不符合守护进程的要求
+
+### grace
+* go get -u github.com/facebookgo/grace/gracehttp
+```
+在实际的生产环境中推荐使用以上开源库，关于热更新开源库的使用非常方便，下面是facebook的grace库的例子：
+引入github.com/facebookgo/grace/gracehttp包
+
+func main() {
+    app := gin.New()// 项目中时候的是gin框架
+    router.Route(app)
+    var server *http.Server
+    server = &http.Server{
+        Addr:    ":8080",
+        Handler: app,
+    }
+    gracehttp.Serve(server)
+}
+```
+
+### http.Server - Shutdown()
+* golang > 1.8
+```
+// http.Server - Shutdown() 热更新版本
+func main() {
+	router := routers.InitRouter()
+	s := &http.Server{
+		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
+		Handler:        router,
+		ReadTimeout:    setting.ReadTimeout,
+		WriteTimeout:   setting.WriteTimeout,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	go func() {
+		if err := s.ListenAndServe(); err != nil {
+			log.Printf("listen failed, err:%v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+
+	log.Println("shutdown server ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+	log.Println("Server exiting")
+}
+```
+
+### swag
+* go get -u github.com/swaggo/swag/cmd/swag
+* swag -v
+* 安装 gin-swagger 
+```
+go get -u github.com/swaggo/gin-swagger
+go get -u github.com/swaggo/gin-swagger/swaggerFiles
+```
+
+## 内部包和知识
+### time.Now().Format()
+* 2006-01-02 15:04:05 // 据说是go诞生之日, 记忆方法:6-1-2-3-4-5
+```
+// 	golang的时间格式 默认采用的是RFC333 RFC3339     = "2006-01-02T15:04:05Z07:00"
+// 这个格式还不能随便写,要不然生成的文件时间不对 正确的固定的格式:// 这是个奇葩,必须是这个时间点, 据说是go诞生之日, 记忆方法:6-1-2-3-4-5
+//    return []byte(fmt.Sprintf(`"%s"`, t.Format("2006-01-02 15:04:05"))), nil
+//TimeFormat  = "20200601"
+TimeFormat = "20060102"
+```
 
 ### file 相关
 ```
@@ -103,84 +195,5 @@ const (
 ### golang 使用 iota
 * [golang 使用 iota](https://studygolang.com/articles/2192)
 
-## go 热更新
-[从PHP迁移至Golang - 热更新篇](https://segmentfault.com/a/1190000017228287)
-### endless
-* 安装  go get -u github.com/fvbock/endless
-* Zero downtime restarts for golang HTTP and HTTPS servers. (for golang 1.3+)
-```
-我们借助 fvbock/endless 来实现 Golang HTTP/HTTPS 服务重新启动的零停机
-endless server 监听以下几种信号量：
-syscall.SIGHUP：触发 fork 子进程和重新启动
-syscall.SIGUSR1/syscall.SIGTSTP：被监听，但不会触发任何动作
-syscall.SIGUSR2：触发 hammerTime
-syscall.SIGINT/syscall.SIGTERM：触发服务器关闭（会完成正在运行的请求）
-endless 正正是依靠监听这些信号量，完成管控的一系列动作
-```
-* 你想想，每次更新发布、或者修改配置文件等，只需要给该进程发送SIGTERM信号，而不需要强制结束应用，是多么便捷又安全的事！
-  问题
-* endless 热更新是采取创建子进程后，将原进程退出的方式，这点不符合守护进程的要求
 
-### grace
-* go get -u github.com/facebookgo/grace/gracehttp
-```
-在实际的生产环境中推荐使用以上开源库，关于热更新开源库的使用非常方便，下面是facebook的grace库的例子：
-引入github.com/facebookgo/grace/gracehttp包
-
-func main() {
-    app := gin.New()// 项目中时候的是gin框架
-    router.Route(app)
-    var server *http.Server
-    server = &http.Server{
-        Addr:    ":8080",
-        Handler: app,
-    }
-    gracehttp.Serve(server)
-}
-```
-
-### http.Server - Shutdown()
-* golang > 1.8
-```
-// http.Server - Shutdown() 热更新版本
-func main() {
-	router := routers.InitRouter()
-	s := &http.Server{
-		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
-		Handler:        router,
-		ReadTimeout:    setting.ReadTimeout,
-		WriteTimeout:   setting.WriteTimeout,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	go func() {
-		if err := s.ListenAndServe(); err != nil {
-			log.Printf("listen failed, err:%v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-
-	log.Println("shutdown server ...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := s.Shutdown(ctx); err != nil {
-		log.Fatal("Server Shutdown:", err)
-	}
-	log.Println("Server exiting")
-}
-```
-
-### time.Now().Format()
-* 2006-01-02 15:04:05 // 据说是go诞生之日, 记忆方法:6-1-2-3-4-5
-```
-// 	golang的时间格式 默认采用的是RFC333 RFC3339     = "2006-01-02T15:04:05Z07:00"
-// 这个格式还不能随便写,要不然生成的文件时间不对 正确的固定的格式:// 这是个奇葩,必须是这个时间点, 据说是go诞生之日, 记忆方法:6-1-2-3-4-5
-//    return []byte(fmt.Sprintf(`"%s"`, t.Format("2006-01-02 15:04:05"))), nil
-//TimeFormat  = "20200601"
-TimeFormat = "20060102"
-```
 
