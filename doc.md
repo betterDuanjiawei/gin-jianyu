@@ -1,6 +1,100 @@
 # gin-jianyu记录
 ## 外部包和知识
+### gorm
+* go get -u github.com/jinzhu/gorm
+* go get -u github.com/go-sql-driver/mysql
+* gorm callback
+```
+gorm所支持的回调方法：
+创建：BeforeSave、BeforeCreate、AfterCreate、AfterSave
+更新：BeforeSave、BeforeUpdate、AfterUpdate、AfterSave
+删除：BeforeDelete、AfterDelete
+查询：AfterFind
+```
 
+```
+// updateTimeStampForCreateCallback will set `CreatedOn`, `ModifiedOn` when creating
+func updateTimeStampForCreateCallback(scope *gorm.Scope) {
+    if !scope.HasError() {
+        nowTime := time.Now().Unix()
+        if createTimeField, ok := scope.FieldByName("CreatedOn"); ok {
+            if createTimeField.IsBlank {
+                createTimeField.Set(nowTime)
+            }
+        }
+
+        if modifyTimeField, ok := scope.FieldByName("ModifiedOn"); ok {
+            if modifyTimeField.IsBlank {
+                modifyTimeField.Set(nowTime)
+            }
+        }
+    }
+}
+在这段方法中，会完成以下功能
+检查是否有含有错误（db.Error）
+scope.FieldByName 通过 scope.Fields() 获取所有字段，判断当前是否包含所需字段
+for _, field := range scope.Fields() {
+  if field.Name == name || field.DBName == name {
+      return field, true
+  }
+  if field.DBName == dbName {
+      mostMatchedField = field
+  }
+}
+field.IsBlank 可判断该字段的值是否为空
+func isBlank(value reflect.Value) bool {
+  switch value.Kind() {
+  case reflect.String:
+      return value.Len() == 0
+  case reflect.Bool:
+      return !value.Bool()
+  case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+      return value.Int() == 0
+  case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+      return value.Uint() == 0
+  case reflect.Float32, reflect.Float64:
+      return value.Float() == 0
+  case reflect.Interface, reflect.Ptr:
+      return value.IsNil()
+  }
+
+  return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
+}
+若为空则 field.Set 用于给该字段设置值，参数为 interface{}
+2、updateTimeStampForUpdateCallback
+// updateTimeStampForUpdateCallback will set `ModifyTime` when updating
+func updateTimeStampForUpdateCallback(scope *gorm.Scope) {
+    if _, ok := scope.Get("gorm:update_column"); !ok {
+        scope.SetColumn("ModifiedOn", time.Now().Unix())
+    }
+}
+scope.Get(...) 根据入参获取设置了字面值的参数，例如本文中是 gorm:update_column ，它会去查找含这个字面值的字段属性
+scope.SetColumn(...) 假设没有指定 update_column 的字段，我们默认在更新回调设置 ModifiedOn 的值
+```
+
+```
+1、 我们的Article是如何关联到Tag？
+func GetArticle(id int) (article Article) {
+    db.Where("id = ?", id).First(&article)
+    db.Model(&article).Related(&article.Tag)
+
+    return 
+}
+能够达到关联，首先是gorm本身做了大量的约定俗成
+Article有一个结构体成员是TagID，就是外键。gorm会通过类名+ID的方式去找到这两个类之间的关联关系
+Article有一个结构体成员是Tag，就是我们嵌套在Article里的Tag结构体，我们可以通过Related进行关联查询
+2、 Preload是什么东西，为什么查询可以得出每一项的关联Tag？
+func GetArticles(pageNum int, pageSize int, maps interface {}) (articles []Article) {
+    db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+
+    return
+}
+Preload就是一个预加载器，它会执行两条SQL，分别是SELECT * FROM blog_articles;和SELECT * FROM blog_tag WHERE id IN (1,2,3,4);，那么在查询出结构后，gorm内部处理对应的映射逻辑，将其填充到Article的Tag中，会特别方便，并且避免了循环查询
+那么有没有别的办法呢，大致是两种
+gorm的Join
+循环Related
+综合之下，还是Preload更好
+```
 ## go 热更新
 [从PHP迁移至Golang - 热更新篇](https://segmentfault.com/a/1190000017228287)
 ### endless
