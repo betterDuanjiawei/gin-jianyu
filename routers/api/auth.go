@@ -4,9 +4,9 @@ import (
 	"github.com/astaxie/beego/validation"
 	"github.com/betterDuanjiawei/gin-jianyu/models"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/e"
+	"github.com/betterDuanjiawei/gin-jianyu/pkg/logging"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/util"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 )
 
@@ -42,7 +42,7 @@ func GetAuth(c *gin.Context) {
 		}
 	} else {
 		for _, err := range valid.Errors {
-			log.Println(err.Key, err.Message)
+			logging.Info(err.Key, err.Message)
 		}
 	}
 
