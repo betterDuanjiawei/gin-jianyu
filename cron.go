@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func main() {
+func Cronmain() {
 	log.Println("Starting...")
 
 	c := cron.New()

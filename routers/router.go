@@ -4,11 +4,13 @@ import (
 	_ "github.com/betterDuanjiawei/gin-jianyu/docs"
 	"github.com/betterDuanjiawei/gin-jianyu/middleware/jwt"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/setting"
+	"github.com/betterDuanjiawei/gin-jianyu/pkg/upload"
 	"github.com/betterDuanjiawei/gin-jianyu/routers/api"
 	v1 "github.com/betterDuanjiawei/gin-jianyu/routers/api/v1"
 	"github.com/gin-gonic/gin"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
+	"net/http"
 )
 
 func InitRouter() *gin.Engine {
@@ -16,10 +18,14 @@ func InitRouter() *gin.Engine {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	gin.SetMode(setting.RunMode)
+	gin.SetMode(setting.ServerSetting.RunMode)
+
+	r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
 
 	r.GET("/auth", api.GetAuth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.POST("/upload", api.UploadImage)
+
 	apiv1 := r.Group("api/v1")
 	apiv1.Use(jwt.JWT())
 	{

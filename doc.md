@@ -367,5 +367,34 @@ const (
 ### golang 使用 iota
 * [golang 使用 iota](https://studygolang.com/articles/2192)
 
+### md5的使用方法
+* [golang中字符串MD5生成方式](https://studygolang.com/articles/13463)
+```
+方案一
+func md5V(str string) string  {
+    h := md5.New()
+    h.Write([]byte(str))
+    return hex.EncodeToString(h.Sum(nil))
+}
+方案二
+func md5V2(str string) string {
+    data := []byte(str)
+    has := md5.Sum(data)
+    md5str := fmt.Sprintf("%x", has)
+    return md5str
+}
+方案三
+func md5V3(str string) string {
+    w := md5.New()
+    io.WriteString(w, str)
+    md5str := fmt.Sprintf("%x", w.Sum(nil))
+    return md5str
+}
+```
+
+### 获取后缀
+* file.GetExt() 内部调用的 path.Ext() 获取文件名
+* path.Ext() 获取路径的
+
 
 
