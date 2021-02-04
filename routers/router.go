@@ -4,6 +4,7 @@ import (
 	_ "github.com/betterDuanjiawei/gin-jianyu/docs"
 	"github.com/betterDuanjiawei/gin-jianyu/middleware/jwt"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/export"
+	"github.com/betterDuanjiawei/gin-jianyu/pkg/qrcode"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/setting"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/upload"
 	"github.com/betterDuanjiawei/gin-jianyu/routers/api"
@@ -23,6 +24,7 @@ func InitRouter() *gin.Engine {
 
 	r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
 	r.StaticFS("/export", http.Dir(export.GetExcelFullPath()))
+	r.StaticFS("/qrcode", http.Dir(qrcode.GetQrCodeFullPath()))
 
 	r.GET("/auth", api.GetAuth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -46,6 +48,7 @@ func InitRouter() *gin.Engine {
 		apiv1.POST("/articles", v1.AddArticle)
 		apiv1.PUT("/articles/:id", v1.EditArticle)
 		apiv1.DELETE("/articles/:id", v1.DeleteArticle)
+		apiv1.POST("/articles/poster/generate", v1.GenerateArticlePoster)
 	}
 
 	return r

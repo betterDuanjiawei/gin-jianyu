@@ -1,6 +1,9 @@
 # gin-jianyu记录
 ## 外部包和知识
 
+### 二维码
+* go get -u github.com/boombuler/barcode 
+
 ### excle
 
 #### tealeg/xlsx

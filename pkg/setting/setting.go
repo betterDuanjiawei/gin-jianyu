@@ -19,6 +19,8 @@ type App struct {
 
 	ExportSavePath string
 
+	QrCodeSavePath string
+
 	LogSavePath string
 	LogSaveName string
 	LogFileExt  string
