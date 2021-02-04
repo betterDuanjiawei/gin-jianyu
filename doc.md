@@ -1,6 +1,14 @@
 # gin-jianyu记录
 ## 外部包和知识
 
+### excle
+
+#### tealeg/xlsx
+* go get -u https://github.com/tealeg/xlsx
+
+#### excelize
+* https://github.com/360EntSecGroup-Skylar/excelize
+
 ### cron
 *  go get -u github.com/robfig/cron
 * 介绍

@@ -3,6 +3,7 @@ package routers
 import (
 	_ "github.com/betterDuanjiawei/gin-jianyu/docs"
 	"github.com/betterDuanjiawei/gin-jianyu/middleware/jwt"
+	"github.com/betterDuanjiawei/gin-jianyu/pkg/export"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/setting"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/upload"
 	"github.com/betterDuanjiawei/gin-jianyu/routers/api"
@@ -21,10 +22,16 @@ func InitRouter() *gin.Engine {
 	gin.SetMode(setting.ServerSetting.RunMode)
 
 	r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
+	r.StaticFS("/export", http.Dir(export.GetExcelFullPath()))
 
 	r.GET("/auth", api.GetAuth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.POST("/upload", api.UploadImage)
+
+	//导出标签
+	r.POST("/tags/export", v1.ExportTag)
+	//导入标签
+	r.POST("/tags/import", v1.ImportTag)
 
 	apiv1 := r.Group("api/v1")
 	apiv1.Use(jwt.JWT())
