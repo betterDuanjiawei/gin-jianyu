@@ -3,10 +3,12 @@ package v1
 import (
 	"github.com/astaxie/beego/validation"
 	"github.com/betterDuanjiawei/gin-jianyu/models"
+	"github.com/betterDuanjiawei/gin-jianyu/pkg/app"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/e"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/logging"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/setting"
 	"github.com/betterDuanjiawei/gin-jianyu/pkg/util"
+	"github.com/betterDuanjiawei/gin-jianyu/service/article_service"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"net/http"
@@ -46,33 +48,39 @@ func GetArticles(c *gin.Context) {
 		"data": data,
 	})
 }
+
 func GetArticle(c *gin.Context) {
+	appG := app.Gin{c}
 	id := com.StrTo(c.Param("id")).MustInt()
 	valid := validation.Validation{}
-	valid.Min(id, 1, "id").Message("文章 id必须大于0")
+	valid.Min(id, 1, "id").Message("ID必须大于0")
 
-	code := e.INVALID_PARAMS
-	var data interface{}
-	if !valid.HasErrors() {
-		if models.ExistArticleByID(id) {
-			data = models.GetArticle(id)
-			code = e.SUCCESS
-		} else {
-			code = e.ERROR_NOT_EXIST_ARTICLE
-		}
-	} else {
-		for _, err := range valid.Errors {
-			logging.Info(err.Key, err.Message)
-		}
+	if valid.HasErrors() {
+		app.MarkErrors(valid.Errors)
+		appG.Response(http.StatusOK, e.INVALID_PARAMS, nil)
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code": code,
-		"msg":  e.GetMsg(code),
-		"data": data,
-	})
+	articleService := article_service.Article{ID: id}
+	exists, err := articleService.ExistByID()
+	if err != nil {
+		appG.Response(http.StatusOK, e.ERROR_CHECK_EXIST_ARTICLE_FAIL, nil)
+		return
+	}
+	if !exists {
+		appG.Response(http.StatusOK, e.ERROR_NOT_EXIST_ARTICLE, nil)
+		return
+	}
 
+	article, err := articleService.Get()
+	if err != nil {
+		appG.Response(http.StatusOK, e.ERROR_GET_ARTICLE_FAIL, nil)
+		return
+	}
+
+	appG.Response(http.StatusOK, e.SUCCESS, article)
 }
+
 func AddArticle(c *gin.Context) {
 	tagId := com.StrTo(c.Query("tag_id")).MustInt()
 	title := c.Query("title")
@@ -148,7 +156,8 @@ func EditArticle(c *gin.Context) {
 
 	code := e.INVALID_PARAMS
 	if !valid.HasErrors() {
-		if models.ExistArticleByID(id) {
+		if ok, err := models.ExistArticleByID(id); ok && err == nil {
+			//if models.ExistArticleByID(id) {
 			if models.ExistTagByID(tagId) {
 				data := make(map[string]interface{})
 				if tagId > 0 {
@@ -194,7 +203,7 @@ func DeleteArticle(c *gin.Context) {
 
 	code := e.INVALID_PARAMS
 	if !valid.HasErrors() {
-		if models.ExistArticleByID(id) {
+		if ok, err := models.ExistArticleByID(id); ok && err == nil {
 			models.DeleteArticle(id)
 			code = e.SUCCESS
 		} else {
